@@ -81,3 +81,4 @@ The following switches can be used in combination
 * -insecurednszone checks for insecure DNS zones
 * -recentchanges checks for newly created users and groups (last 30 days)
 * -all runs all checks, e.g. AdAudit.ps1 -all
+* -dfir runs DFIR specific checks
