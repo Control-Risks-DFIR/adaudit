@@ -40,9 +40,10 @@ Param (
     [switch]$authpolsilos    = $false,
     [switch]$insecurednszone = $false,
     [switch]$recentchanges   = $false,
-    [switch]$all             = $false
+    [switch]$all             = $false,
+    [switch]$dfir            = $false
 )
-$versionnum               = "v5.2"
+$versionnum               = "v5.4cr"
 $AdministratorTranslation = @("Administrator","Administrateur","Administrador")#If missing put the default Administrator name for your own language here
 
 Function Get-Variables(){#Retrieve group names and OS version
@@ -566,6 +567,9 @@ Function Get-OldBoxes{#Lists 2000/2003/XP/Vista/7/2008 machines
         Write-Both "    [!] We found $count machines running 2000/2003/XP/Vista/7/2008! see machines_old.txt (KB3/37/38/KB259)"
         Write-Nessus-Finding "OldBoxes" "KB259" ([System.IO.File]::ReadAllText("$outputdir\machines_old.txt"))
     }
+}
+Function Get-AllBoxes{#CR - Lists all machines
+    Get-ADComputer -Filter * -Properties * | Export-Csv "$outputdir\machines_all.csv" -NoTypeInformation -Encoding UTF8
 }
 Function Get-DCsNotOwnedByDA {#Searches for DC objects not owned by the Domain Admins group
     $count             = 0
@@ -1196,6 +1200,38 @@ if($laps -or $all)           { $running=$true ; Write-Both "[*] Check For Existe
 if($authpolsilos -or $all)   { $running=$true ; Write-Both "[*] Check For Existence of Authentication Polices and Silos" ; Get-AuthenticationPoliciesAndSilos }
 if($insecurednszone -or $all){ $running=$true ; Write-Both "[*] Check For Existence DNS Zones allowing insecure updates" ; Get-DNSZoneInsecure }
 if($recentchanges -or $all)  { $running=$true ; Write-Both "[*] Check For newly created users and groups"                ; Get-RecentChanges }
+
+# DFIR mode - curently does everything
+if($dfir){
+    $running=$true;
+    Write-Both "[*] Device Information";
+    Get-HostDetails;
+    Write-Both "[*] Domain Audit"
+    Get-LastWUDate; Get-DCEval; Get-TimeSource; Get-PrivilegedGroupMembership; Get-MachineAccountQuota; Get-DefaultDomainControllersPolicy; Get-SMB1Support; Get-FunctionalLevel; Get-DCsNotOwnedByDA; Get-ReplicationType; Get-RecycleBinState; Get-CriticalServicesStatus; Get-RODC;
+    Write-Both "[*] Domain Trust Audit";
+    Get-DomainTrusts;
+    Write-Both "[*] Accounts Audit";
+    Get-InactiveAccounts; Get-DisabledAccounts; Get-LockedAccounts; Get-AdminAccountChecks; Get-NULLSessions; Get-PrivilegedGroupAccounts; Get-ProtectedUsers;
+    Write-Both "[*] Password Information Audit";
+    Get-AccountPassDontExpire; Get-UserPasswordNotChangedRecently; Get-PasswordPolicy; Get-PasswordQuality;
+    Write-Both "[*] Trying to save NTDS.dit, please wait...";
+    Get-NTDSdit;
+    Write-Both "[*] Computer Objects Audit";
+    Get-AllBoxes;
+    Write-Both "[*] GPO audit (and checking SYSVOL for passwords)";
+    Get-GPOtoFile; Get-GPOsPerOU; Get-SYSVOLXMLS; Get-GPOEnum;
+    Write-Both "[*] Check Generic Group AD Permissions";
+    Get-OUPerms;
+    Write-Both "[*] Check For Existence of LAPS in domain";
+    Get-LAPSStatus;
+    Write-Both "[*] Check For Existence of Authentication Polices and Silos";
+    Get-AuthenticationPoliciesAndSilos;
+    Write-Both "[*] Check For Existence DNS Zones allowing insecure updates";
+    Get-DNSZoneInsecure;
+    Write-Both "[*] Check For newly created users and groups";
+    Get-RecentChanges;
+}
+
 if(!$running){ Write-Both "[!] No arguments selected"
     Write-Both "[!] Other options are as follows, they can be used in combination"
     Write-Both "    -installdeps installs optionnal features (DSInternals)"
@@ -1213,6 +1249,7 @@ if(!$running){ Write-Both "[!] No arguments selected"
     Write-Both "    -insecurednszone checks for insecure DNS zones"
     Write-Both "    -recentchanges checks for newly created users and groups (last 30 days)"
     Write-Both "    -all runs all checks, e.g. $scriptname -all"
+    Write-Both "    -dfir runs DFIR specific modules"
 }
 Write-Nessus-Footer
 

@@ -1,5 +1,8 @@
 o Changelog :
-    [x] Version 5.3 - 03/07/2022
+    [x] Version 5.4cr - 26/04/2022
+        * Added -dfir option which runs DFIR specific modules/collection
+        * Added AllBoxes function to capture all devices on the domain, only runs as part of -dfir option
+    [ ] Version 5.3 - 03/07/2022
         * Added SamAccountName to Get-PrivilegedGroupMembership output
         * Swapped some write-host to write-both so it's captured in the consolelog.txt
     [ ] Version 5.2 - 01/28/2022
